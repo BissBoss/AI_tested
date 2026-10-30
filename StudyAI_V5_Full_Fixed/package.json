@@ -1,0 +1,9 @@
+{
+  "name": "lonqq-study-ai-v4-2-real-ai",
+  "private": true,
+  "version": "4.2.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module"
+}
