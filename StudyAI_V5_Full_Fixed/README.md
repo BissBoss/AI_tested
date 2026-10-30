@@ -31,10 +31,10 @@ V5 vẫn có Dashboard, Smart Text, Quiz, Flashcards, Free Recall, Exam, Review,
 
 1. Giải nén thư mục này và deploy lên dịch vụ hỗ trợ serverless functions (ví dụ Vercel) cùng các file `index.html`, `api/chat.js`, `api/generate.js`, `package.json`, `vercel.json`.
 2. Trong project hosting, đặt các **biến môi trường phía server**:
-   - `OPENAI_API_KEY`: OpenAI API key của bạn.
+   - `GEMINI_API_KEY`: Gemini API key miễn phí tại https://aistudio.google.com/app/apikey (Secret).
    - `STUDY_APP_PIN`: mã PIN riêng **dài và khó đoán** để bảo vệ endpoint AI; bắt buộc.
-   - `OPENAI_MODEL=gpt-4.1-mini` (có thể chọn model khác tài khoản API hỗ trợ).
-   - Có thể đặt `OPENAI_GENERATOR_MODEL`, `OPENAI_VERIFIER_MODEL`, `AI_MIN_CONFIDENCE`.
+   - `GEMINI_MODEL=gemini-3.6-flash` (Config; hạn mức miễn phí theo dự án).
+   - Có thể đặt `GEMINI_GENERATOR_MODEL`, `GEMINI_CHAT_MODEL`, `GEMINI_VERIFIER_MODEL`, `AI_MIN_CONFIDENCE`.
 3. Deploy. Chỉ khi có URL HTTPS và endpoint `/api/generate` được cấu hình thì tính năng tạo câu hỏi theo khái niệm mới gọi AI thật.
 4. Mở URL trên Safari → Share → Add to Home Screen.
 5. Ở bước 6 trong wizard, nhập `STUDY_APP_PIN` để sử dụng AI.
@@ -56,3 +56,7 @@ V5 vẫn có Dashboard, Smart Text, Quiz, Flashcards, Free Recall, Exam, Review,
 - Chấm Free Recall hiện vẫn có phần so từ khóa theo nội dung nguồn, **chưa phải semantic grading** bằng LLM.
 - OCR, sơ đồ, bảng, công thức và slide phức tạp có thể bị trích xuất thiếu.
 - Chưa có podcast/vấn đáp giọng nói như một số tính năng Astra.
+
+## Gemini Free Tier
+
+Vercel Production Environment Variables: GEMINI_API_KEY (Secret), STUDY_APP_PIN (Secret), GEMINI_MODEL=gemini-3.6-flash (Config). Tùy chọn GEMINI_CHAT_MODEL=gemini-3.5-flash-lite và GEMINI_VERIFIER_MODEL=gemini-3.5-flash-lite. Redeploy. GET /api/generate phải có configured: true. Không dùng lại OpenAI khi Gemini lỗi. Giới hạn miễn phí có thể báo HTTP 429. Chỉ gửi trích đoạn nguồn đến Gemini; gói free có thể dùng nội dung để cải thiện dịch vụ.

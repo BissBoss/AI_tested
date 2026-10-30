@@ -291,7 +291,7 @@ async function sendChatFrom(inputId='askInput',forcedMode=null,forcedText=null){
  let pending={role:'ai',html:loadingTutorHtml(),ts:new Date().toISOString(),pending:true};progress.tutorHistory.push(pending);renderTutor();
  if(!AI_CLOUD.checked)await checkAiCloud();
  if(AI_CLOUD.available){try{let out=await callCloudTutor(q,mode,hits,historyBefore);pending.html=cloudAnswerHtml(out.data,out.sources);pending.pending=false;pending.fact_ids=out.sources.filter(s=>(out.data.used_source_ids||[]).includes(s.id)).map(s=>s.fact_id);if(!pending.fact_ids.length)pending.fact_ids=hits.slice(0,3).map(x=>x.f.id);pending.query=q;pending.mode=mode;pending.cloud=true;pending.confidence=out.data.confidence}catch(err){AI_CLOUD.available=false;setAiStatus('local','◉ Local fallback');pending.html=tutorAnswerHtml(hits,mode)+'<span class="cloudNote">AI Cloud không khả dụng → đã dùng Local Source Tutor.</span>';pending.pending=false;pending.fact_ids=hits.map(x=>x.f.id);pending.query=q;pending.mode=mode}}
- else{pending.html=tutorAnswerHtml(hits,mode)+'<span class="cloudNote">Local Source Tutor • deploy package với OPENAI_API_KEY để bật Real AI.</span>';pending.pending=false;pending.fact_ids=hits.map(x=>x.f.id);pending.query=q;pending.mode=mode}
+ else{pending.html=tutorAnswerHtml(hits,mode)+'<span class="cloudNote">Local Source Tutor • deploy package với GEMINI_API_KEY miễn phí để bật AI.</span>';pending.pending=false;pending.fact_ids=hits.map(x=>x.f.id);pending.query=q;pending.mode=mode}
  await save();renderTutor()}
 async function askDocument(){return sendChatFrom('askInput')}
 async function clearTutor(){progress.tutorHistory=[];await save();renderTutor()}
@@ -391,8 +391,8 @@ async function setupNext(){
 }
 function setupPrev(){setupStep=Math.max(0,setupStep-1);setupShow()}
 function setupSummary(){const dist=getSetupDistribution(),formats=getSetupFormats(),sub=subjectInfo();$('setupSummary').innerHTML=`<b>📚 ${esc(sub?.name||'Môn mới')}</b><br>🎯 ${({exam:'Ôn thi',understand:'Hiểu sâu',apply:'Vận dụng'})[setupGoal]}<br>📄 ${ws.documents.length} file • ${ws.facts.length} fact đã trích<br>📆 Thi: ${esc(sub?.examDate||'Chưa đặt')} • Mục tiêu: ${sub?.targetScore||8}/10 • ${sub?.dailyMinutes||60} phút/ngày<br>🧠 ${Object.entries(dist).map(([l,v])=>levelName(l)+' '+v+'%').join(' • ')}<br>🧩 ${formats.join(', ')} • ${Math.min(120,+$('setupCount').value||24)} câu`}
-async function checkConceptCloud(){let e=$('setupAiStatus');if(!e)return; if(location.protocol==='file:'){e.className='notice warn';e.textContent='Chưa bật AI Cloud: file HTML mở trực tiếp chỉ có chế độ offline. Để sinh câu hỏi thực sự theo khái niệm, cần deploy lên HTTPS có OPENAI_API_KEY.';return false}
- try{let r=await fetch('/api/generate',{cache:'no-store'});let data=await r.json();let ready=r.ok&&data.configured;e.className='notice '+(ready?'good':'warn');e.textContent=ready?`AI Cloud đã kết nối • ${data.model} ${data.requires_pin?'• cần PIN':''}`:'Chưa có OPENAI_API_KEY trên server; generator AI chưa hoạt động.';return ready}catch(e2){e.className='notice warn';e.textContent='Không kết nối được /api/generate. Hãy deploy package lên host hỗ trợ serverless.';return false}}
+async function checkConceptCloud(){let e=$('setupAiStatus');if(!e)return; if(location.protocol==='file:'){e.className='notice warn';e.textContent='Chưa bật AI Cloud: file HTML mở trực tiếp chỉ có chế độ offline. Để sinh câu hỏi thực sự theo khái niệm, cần deploy lên HTTPS có GEMINI_API_KEY miễn phí.';return false}
+ try{let r=await fetch('/api/generate',{cache:'no-store'});let data=await r.json();let ready=r.ok&&data.configured;e.className='notice '+(ready?'good':'warn');e.textContent=ready?`AI Cloud đã kết nối • ${data.model} ${data.requires_pin?'• cần PIN':''}`:'Chưa có GEMINI_API_KEY miễn phí trên Vercel; generator AI chưa hoạt động.';return ready}catch(e2){e.className='notice warn';e.textContent='Không kết nối được /api/generate. Hãy deploy package lên host hỗ trợ serverless.';return false}}
 async function generateQuestions(){return generateConceptQuestions(false)}
 function buildConceptSources(facts,seed){let arr=shuffle(facts).slice(0,12);if(!arr.length)return[];
  // Prefer pairs of related facts without excluding other topics.
@@ -420,7 +420,7 @@ async function generateConceptQuestions(fromSetup=false){
  if(!formats.length)return toast('Chưa chọn dạng câu hỏi');
  const count=Math.min(120,Math.max(8,fromSetup?(+$('setupCount').value||24):(+Math.min(120,+$('questionCount').value||24))));
  const status=fromSetup?$('setupGenerateStatus'):$('genStatus');
- if(location.protocol==='file:'){status.innerHTML='<div class="notice warn">Cần AI Cloud. File HTML offline KHÔNG thể bí mật gọi model bằng API key và không thể tạo câu hiểu/vận dụng thật. Hãy deploy package và cấu hình OPENAI_API_KEY.</div>';return}
+ if(location.protocol==='file:'){status.innerHTML='<div class="notice warn">Cần AI Cloud. File HTML offline KHÔNG thể bí mật gọi model bằng API key và không thể tạo câu hiểu/vận dụng thật. Hãy deploy package và cấu hình GEMINI_API_KEY miễn phí.</div>';return}
  const configured=await checkConceptCloud();if(!configured){status.innerHTML='<div class="notice warn">Chưa có server AI. Hãy kết nối AI Cloud trước; không tự tạo câu hỏi thay thế kém chất lượng.</div>';return}
  conceptGenerating=true;
  const btn=fromSetup?$('setupNext'):$('genBtn');btn.disabled=true;
@@ -436,7 +436,7 @@ async function generateConceptQuestions(fromSetup=false){
    try{const r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json','x-study-pin':pin},body:JSON.stringify({subject:subjectInfo()?.name||'Study',goal:setupGoal,focus:setupGoal,difficulty:task.level,count:task.count,formats:[task.format],sources:buildConceptSources(ws.facts,done),exclude:collected.slice(-12).map(q=>q.question)})});
       const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw Error(j.error||`HTTP ${r.status}`);
       for(const raw of j.questions||[]){const q=conceptToQuestion(raw);if(uniqueConcept(q,known))collected.push(q)}
-   }catch(err){failures.push(`${levelName(task.level)} / ${task.format}: ${err.message}`);if(/PIN|401|API|configured/i.test(String(err.message)))break}
+   }catch(err){failures.push(`${levelName(task.level)} / ${task.format}: ${err.message}`);if(/PIN|401|403|404|429|API|configured|hạn mức|quota|không có quyền|Model Gemini/i.test(String(err.message)))break}
    done++;status.innerHTML=`<div class="notice">⏳ AI kiểm định đáp án + nguồn • ${done}/${todo.length} batch • đã duyệt ${collected.length} câu</div>`;
  }
  if(collected.length){
