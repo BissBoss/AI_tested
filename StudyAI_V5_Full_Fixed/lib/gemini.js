@@ -4,6 +4,22 @@ export const generatorModel=()=>process.env.GEMINI_GENERATOR_MODEL||process.env.
 export const chatModel=()=>process.env.GEMINI_CHAT_MODEL||process.env.GEMINI_MODEL||'gemini-3.5-flash-lite';
 export const verifierModel=()=>process.env.GEMINI_VERIFIER_MODEL||'gemini-3.5-flash-lite';
 export const geminiConfigured=()=>Boolean(process.env.GEMINI_API_KEY&&process.env.STUDY_APP_PIN);
+// responseSchema uses Gemini's Schema (OpenAPI-style), not full JSON Schema.
+// Gemini's responseSchema rejects additionalProperties, including nested arrays/items.
+// Remove that constraint only for the wire format; generator/verifier still validate
+// returned questions and literal source evidence in application code.
+export function toGeminiResponseSchema(value) {
+ if (Array.isArray(value)) return value.map(toGeminiResponseSchema);
+ if (value && typeof value === 'object') {
+  const out={};
+  for(const [key,child] of Object.entries(value)) {
+   if(key === 'additionalProperties') continue;
+   out[key]=toGeminiResponseSchema(child);
+  }
+  return out;
+ }
+ return value;
+}
 export async function invokeGemini({model,instructions,input,schema,max_output_tokens=5000}){
  if(!process.env.GEMINI_API_KEY)throw Error('Thiếu GEMINI_API_KEY trên Vercel.');
  if(!/^[a-zA-Z0-9_.-]+$/.test(model))throw Error('Tên model Gemini không hợp lệ.');
@@ -14,7 +30,7 @@ export async function invokeGemini({model,instructions,input,schema,max_output_t
    body:JSON.stringify({
     systemInstruction:{parts:[{text:String(instructions||'')}]},
     contents:[{role:'user',parts:[{text:String(input||'')}]}],
-    generationConfig:{responseMimeType:'application/json',responseSchema:schema,
+    generationConfig:{responseMimeType:'application/json',responseSchema:toGeminiResponseSchema(schema),
       maxOutputTokens:Math.min(12000,Math.max(512,Number(max_output_tokens)||5000)),temperature:0.25}
    }),signal:ctl.signal
   });
